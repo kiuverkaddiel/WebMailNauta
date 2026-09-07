@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">WebMailNauta</string>
+    <string name="mail_user">Mail user</string>
+    <string name="mail_password">Mail password</string>
+    <string name="captcha_value">Captcha value</string>
+    <string name="login">Log in</string>
+    <string name="image_captcha_content_description">IMAGE CAPTCHA</string>
+    <string name="save_list">Save list</string>"
+
+    <string name="internet_permission">Permission for Internet granted.</string>
+    <string name="read_external_storage_permission">Permission for Read External Storage granted.</string>
+    <string name="write_external_storage_permission">Permission for Write External Storage granted.</string>
+    <string name="undefined_permission">Undefined permission.</string>
+    <string name="bt_login_text">Login</string>
+    <string name="reload">Reload</string>
+</resources>

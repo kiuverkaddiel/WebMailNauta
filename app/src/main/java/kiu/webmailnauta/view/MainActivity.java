@@ -65,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
     private String pendingEncryptedText;
     private String pendingDate;
 
+    private String pendingSubject;
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,10 +97,12 @@ public class MainActivity extends AppCompatActivity {
                 if (div == null) return;
                 String date = extractMessageDate();
                 if (date == null || date.isEmpty()) return;
+                String subject = extractMessageSubject();
+                if (subject == null || subject.isEmpty()) return;
 
                 div.select("br").remove(); // Remove <br> tags
                 String encryptedText = div.text();
-                saveEncryptedText(encryptedText, date);
+                saveEncryptedText(encryptedText, date, subject);
             }
         });
 
@@ -112,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
         reloadButton.setOnClickListener(v -> webView.loadUrl(WEBMAIL_URL));
     }
 
-    private void saveEncryptedText(String content, String date) {
+    private void saveEncryptedText(String content, String date, String subject) {
         if (content == null || content.isEmpty()) {
             Toast.makeText(this, "No content to save", Toast.LENGTH_SHORT).show();
             return;
@@ -126,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
 
         SimpleDateFormat folderDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
         String turn = "OUT";
-        // make two range of date: one for 07:00 to 13:30 and another for 14:00 to 21:30
+        // make two range of date: one for list_07:00 to 13:30 and another for 14:00 to 21:30
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(parsedDate);
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
@@ -151,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String fileName = "list_" + System.currentTimeMillis() + ".txt";
+        String fileName = subject + ".txt";
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -177,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
                         != PackageManager.PERMISSION_GRANTED) {
                     pendingEncryptedText = content;
                     pendingDate = date;
+                    pendingSubject = subject;
                     ActivityCompat.requestPermissions(this,
                             new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                             PERMISSION_CODE);
@@ -205,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 if (pendingEncryptedText != null) {
-                    saveEncryptedText(pendingEncryptedText, pendingDate);
+                    saveEncryptedText(pendingEncryptedText, pendingDate, pendingSubject);
                     pendingEncryptedText = null;
                     pendingDate = null;
                 }
@@ -233,13 +238,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public String extractMessageDate() {
+    private String extractMessageDate() {
         if (htmlDocument == null) return null;
         Element dateLabel = htmlDocument.getElementById("imp-message-date");
         return dateLabel != null ? dateLabel.text() : null;
     }
 
-    public static Date parseMessageDate(String rawDate) {
+    private String extractMessageSubject() {
+        if (htmlDocument == null) return null;
+        Element message = htmlDocument.getElementById("message");
+        if (message == null || message.text().isEmpty())
+            return null;
+        Element subjectLabel = message.selectFirst("h1.smartmobile-title");
+        return subjectLabel != null ? subjectLabel.text() : null;
+    }
+
+    private static Date parseMessageDate(String rawDate) {
         if (rawDate == null || rawDate.trim().isEmpty()) {
             return null;
         }
@@ -324,9 +338,5 @@ public class MainActivity extends AppCompatActivity {
 
         Log.e(TAG, "Unable to parse date: " + rawDate);
         return null;
-    }
-
-    public Date getMessageDate() {
-        return parseMessageDate(extractMessageDate());
     }
 }

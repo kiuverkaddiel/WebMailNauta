@@ -5,7 +5,7 @@
     <string name="captcha_value">Captcha value</string>
     <string name="login">Log in</string>
     <string name="image_captcha_content_description">IMAGE CAPTCHA</string>
-    <string name="save_list">Save list</string>"
+    <string name="save_list">Save</string>"
 
     <string name="internet_permission">Permission for Internet granted.</string>
     <string name="read_external_storage_permission">Permission for Read External Storage granted.</string>
@@ -14,4 +14,5 @@
     <string name="bt_login_text">Login</string>
     <string name="reload">Reload</string>
     <string name="next">Next</string>
+    <string name="save_all">Save All</string>
 </resources>

@@ -39,6 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import kiu.webmailnauta.R;
@@ -125,12 +126,79 @@ public class MainActivity extends AppCompatActivity {
         Button nextMessageButton = findViewById(R.id.bt_next);
         nextMessageButton.setOnClickListener(v -> {
             webView.evaluateJavascript(javascriptCodeNextMessage, null);
-            // wait 3 seconds and reload the page to ensure the next message is loaded
-//            new Handler(Looper.getMainLooper()).postDelayed(() -> webView.reload(), 3000);
         });
 
         Button reloadButton = findViewById(R.id.bt_reload);
         reloadButton.setOnClickListener(v -> webView.reload());
+
+        Button saveAllButton = findViewById(R.id.bt_save_all_list);
+        saveAllButton.setOnClickListener(v -> saveAllMessages(null));
+    }
+
+    private void saveAllMessages(String messageTurn) {
+        if (messageTurn == null) {
+            messageTurn = getMessageTurn();
+        }
+        final String currentTurn = messageTurn;
+
+        webView.reload();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            // wait 5 seconds and reload the page to ensure the next message is loaded
+            Element div = htmlDocument.selectFirst("#imp-message-body");
+            if (div == null) return;
+            String date = extractMessageDate();
+            if (date == null || date.isEmpty()) return;
+            String subject = extractMessageSubject();
+            if (subject == null || subject.isEmpty()) return;
+
+            div.select("br").remove(); // Remove <br> tags
+            String encryptedText = div.text();
+            saveEncryptedText(encryptedText, date, subject);
+
+            webView.evaluateJavascript(javascriptCodeNextMessage, null);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                // wait 3 seconds and reload the page to ensure the next message is loaded
+                if (Objects.equals(currentTurn, getMessageTurn())) {
+                    saveAllMessages(currentTurn);
+                }
+            }, 3000);
+        }, 5000);
+    }
+
+    private String getMessageTurn() {
+        if (htmlDocument == null) return null;
+
+        Element div = htmlDocument.selectFirst("#imp-message-body");
+        if (div == null) return null;
+        String date = extractMessageDate();
+
+        Date parsedDate = parseMessageDate(date);
+        if (parsedDate == null) {
+            Toast.makeText(this, "Invalid date format: " + date, Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        return getTurnByDate(parsedDate);
+    }
+
+    private String getTurnByDate(Date parsedDate) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(parsedDate);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+
+        String turn = "OUT";
+        if (hour == 7 || (hour > 7 && hour < 13) || (hour == 13 && minute <= 30)) {
+            turn = "DIA";
+        } else if (hour == 14 || (hour > 14 && hour < 21) || (hour == 21 && minute <= 30)) {
+            turn = "NOCHE";
+        }
+
+        SimpleDateFormat folderDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
+        String folderName = folderDateFormat.format(parsedDate) + "-" + turn;
+        // remove zero on the day and month if present
+        folderName = folderName.replaceAll("(^|-)0", "$1");
+        return folderName;
     }
 
     private void saveEncryptedText(String content, String date, String subject) {
@@ -145,23 +213,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        SimpleDateFormat folderDateFormat = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
-        String turn = "OUT";
-        // make two range of date: one for list_07:00 to 13:30 and another for 14:00 to 21:30
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(parsedDate);
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-
-        if (hour == 7 || hour > 7 && hour < 13 || hour == 13 && minute <= 30) {
-            turn = "DIA";
-        } else if (hour == 14 || hour > 14 && hour < 21 || hour == 21 && minute <= 30) {
-            turn = "NOCHE";
-        }
-
-        String folderName = folderDateFormat.format(parsedDate) + "-" + turn;
-        // remove zero on the day and month if present
-        folderName = folderName.replaceAll("(^|-)0", "$1");
+        String folderName = getTurnByDate(parsedDate);
 
         // create folder in Downloads
         File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);

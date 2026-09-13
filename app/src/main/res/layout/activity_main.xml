@@ -12,7 +12,7 @@
     <WebView
         android:id="@+id/wv_nauta"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="600dp"
         android:visibility="visible"
         app:layout_constraintBottom_toTopOf="@+id/buttons_layout"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -38,6 +38,14 @@
             android:layout_height="wrap_content"
             android:enabled="true"
             android:text="@string/save_list" />
+
+        <Button
+            android:id="@+id/bt_save_all_list"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:enabled="true"
+            android:text="@string/save_all" />
 
         <Button
             android:id="@+id/bt_login"

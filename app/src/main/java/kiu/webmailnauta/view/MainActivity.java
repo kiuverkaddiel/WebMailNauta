@@ -45,7 +45,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final String WEBMAIL_URL = "https://webmail.nauta.cu/login.php";
-
     private Document htmlDocument;
     private Button btnLogin;
     private static final String javascriptCodeSubmitForm = """
@@ -59,12 +58,9 @@ public class MainActivity extends AppCompatActivity {
             """;
 
     private WebView webView;
-
-
     private static final int PERMISSION_CODE = 100;
     private String pendingEncryptedText;
     private String pendingDate;
-
     private String pendingSubject;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -93,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
         Button btnSaveList = findViewById(R.id.bt_save_list);
         btnSaveList.setOnClickListener(v -> {
             if (htmlDocument != null) {
-                Element div = htmlDocument.selectFirst("#imp-message-body div.fixed.leftAlign");
+                Element div = htmlDocument.selectFirst("#imp-message-body");
                 if (div == null) return;
                 String date = extractMessageDate();
                 if (date == null || date.isEmpty()) return;
@@ -113,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Button reloadButton = findViewById(R.id.bt_reload);
-        reloadButton.setOnClickListener(v -> webView.loadUrl(WEBMAIL_URL));
+        reloadButton.setOnClickListener(v -> webView.reload());
     }
 
     private void saveEncryptedText(String content, String date, String subject) {
@@ -222,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
     @android.webkit.JavascriptInterface
     public void onLoadComplete(String html) {
+
         htmlDocument = Jsoup.parse(html);
         Element form = htmlDocument.selectFirst("input[type=\"submit\"]");
         if (form != null) {
@@ -230,12 +227,12 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> btnLogin.setVisibility(Button.GONE));
         }
 
-        Element div = htmlDocument.selectFirst("#imp-message-body div.fixed.leftAlign");
-        if (div != null) {
-            runOnUiThread(() -> findViewById(R.id.bt_save_list).setVisibility(Button.VISIBLE));
-        } else {
-            runOnUiThread(() -> findViewById(R.id.bt_save_list).setVisibility(Button.GONE));
-        }
+//        Element div = htmlDocument.selectFirst("#imp-message-body div.fixed.leftAlign");
+//        if (div != null) {
+//            runOnUiThread(() -> findViewById(R.id.bt_save_list).setVisibility(Button.VISIBLE));
+//        } else {
+//            runOnUiThread(() -> findViewById(R.id.bt_save_list).setVisibility(Button.GONE));
+//        }
     }
 
     private String extractMessageDate() {

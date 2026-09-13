@@ -17,9 +17,9 @@ public class ImpWebClient extends WebViewClient {
                         // Select all elements with data-role="fieldcontain"
                         var fields = document.querySelectorAll('[data-role="fieldcontain"]');
                         fields.forEach(function(field) {
-                            field.style = "display:none";
+                            field.style.display = "none";
                         });
-                        document.getElementsByClassName("ui-collapsible")[0].style = "display:none";
+                        document.getElementsByClassName("ui-collapsible")[0].style.display = "none";
                         var img = document.querySelector('img[src="/themes/nauta/graphics/etecsa_logo.png"]');
                         if (img) {
                             var table = img.closest('table');
@@ -42,7 +42,18 @@ public class ImpWebClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView view, String url) {
-        view.evaluateJavascript("window.loadListener.onLoadComplete(document.documentElement.outerHTML);", null);
+//        view.evaluateJavascript("window.loadListener.onLoadComplete(document.documentElement.outerHTML);", null);
+        String js = """
+                    const observer = new MutationObserver((mutations, obs) => {
+                        const target = document.querySelector('#imp-message-body'); // or your target selector
+                        if (target && target.innerText.trim().length > 0) {
+                            obs.disconnect();
+                            window.loadListener.onLoadComplete(document.documentElement.outerHTML);
+                        }
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                """;
+        view.evaluateJavascript(js, null);
         view.evaluateJavascript(javascriptCode, null);
     }
 }

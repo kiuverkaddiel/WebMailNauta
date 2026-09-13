@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.WebView;
@@ -57,6 +59,14 @@ public class MainActivity extends AppCompatActivity {
                 submitForm();
             """;
 
+    private static final String javascriptCodeNextMessage = """
+                (function() {
+                        if (window.ImpMobile && typeof ImpMobile.navigateMessage === 'function') {
+                                    ImpMobile.navigateMessage(1);
+                                }
+                    })();
+            """;
+
     private WebView webView;
     private static final int PERMISSION_CODE = 100;
     private String pendingEncryptedText;
@@ -89,16 +99,20 @@ public class MainActivity extends AppCompatActivity {
         Button btnSaveList = findViewById(R.id.bt_save_list);
         btnSaveList.setOnClickListener(v -> {
             if (htmlDocument != null) {
-                Element div = htmlDocument.selectFirst("#imp-message-body");
-                if (div == null) return;
-                String date = extractMessageDate();
-                if (date == null || date.isEmpty()) return;
-                String subject = extractMessageSubject();
-                if (subject == null || subject.isEmpty()) return;
+                webView.reload();
+                // wait 5 seconds and reload the page to ensure the next message is loaded
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    Element div = htmlDocument.selectFirst("#imp-message-body");
+                    if (div == null) return;
+                    String date = extractMessageDate();
+                    if (date == null || date.isEmpty()) return;
+                    String subject = extractMessageSubject();
+                    if (subject == null || subject.isEmpty()) return;
 
-                div.select("br").remove(); // Remove <br> tags
-                String encryptedText = div.text();
-                saveEncryptedText(encryptedText, date, subject);
+                    div.select("br").remove(); // Remove <br> tags
+                    String encryptedText = div.text();
+                    saveEncryptedText(encryptedText, date, subject);
+                }, 5000);
             }
         });
 
@@ -106,6 +120,13 @@ public class MainActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> {
             webView.evaluateJavascript(javascriptCodeSubmitForm, null);
             btnLogin.setVisibility(Button.GONE);
+        });
+
+        Button nextMessageButton = findViewById(R.id.bt_next);
+        nextMessageButton.setOnClickListener(v -> {
+            webView.evaluateJavascript(javascriptCodeNextMessage, null);
+            // wait 3 seconds and reload the page to ensure the next message is loaded
+//            new Handler(Looper.getMainLooper()).postDelayed(() -> webView.reload(), 3000);
         });
 
         Button reloadButton = findViewById(R.id.bt_reload);

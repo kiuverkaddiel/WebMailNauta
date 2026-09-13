@@ -124,9 +124,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Button nextMessageButton = findViewById(R.id.bt_next);
-        nextMessageButton.setOnClickListener(v -> {
-            webView.evaluateJavascript(javascriptCodeNextMessage, null);
-        });
+        nextMessageButton.setOnClickListener(v -> webView.evaluateJavascript(javascriptCodeNextMessage, null));
 
         Button reloadButton = findViewById(R.id.bt_reload);
         reloadButton.setOnClickListener(v -> webView.reload());

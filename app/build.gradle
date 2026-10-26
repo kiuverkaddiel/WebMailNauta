@@ -1,6 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 }
+
+// Load local, git-ignored credentials (see local.properties.sample).
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+def nautaUsername = localProperties.getProperty('NAUTA_USERNAME', '')
+def nautaPassword = localProperties.getProperty('NAUTA_PASSWORD', '')
 
 android {
     namespace 'kiu.webmailnauta'
@@ -14,6 +25,13 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "String", "NAUTA_USERNAME", "\"${nautaUsername}\""
+        buildConfigField "String", "NAUTA_PASSWORD", "\"${nautaPassword}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {

@@ -1,59 +1,67 @@
 package kiu.webmailnauta.view;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 public class ImpWebClient extends WebViewClient {
 
-    private static final String javascriptCode = """
-                    function fillForm(){
-                        var username = "magaly.larubia@nauta.cu";
-                        var password = "PtAS8S48rH";
-                        document.getElementById("horde_user").value = username;
-                        document.getElementById("horde_pass").value = password;
-                    }
-            
-                    function hiddeForm() {
-                        // Select all elements with data-role="fieldcontain"
-                        var fields = document.querySelectorAll('[data-role="fieldcontain"]');
-                        fields.forEach(function(field) {
-                            field.style.display = "none";
-                        });
-                        document.getElementsByClassName("ui-collapsible")[0].style.display = "none";
-                        var img = document.querySelector('img[src="/themes/nauta/graphics/etecsa_logo.png"]');
-                        if (img) {
-                            var table = img.closest('table');
-                            if (table) {
-                                table.style.display = "none";
-                            }
-                        }
-                        var submitBtn = document.querySelector('input[type="submit"]');
-                        if (submitBtn) {
-                            var fieldset = submitBtn.closest('fieldset');
-                            if (fieldset) {
-                                fieldset.style.display = "none";
-                            }
-                        }
-                    }
-            
-                    fillForm();
-                    hiddeForm();
+    private static final long INITIAL_DELAY_MS = 150;
+    private static final long POLL_INTERVAL_MS = 200;
+    private static final long MAX_WAIT_MS = 5000;
+    private static final int STABLE_CHECKS_REQUIRED = 2;
+
+    private static final String CHECK_AJAX_ACTIVE_JS = """
+            (function() {
+                try {
+                    return (typeof jQuery !== 'undefined' && jQuery.active) ? jQuery.active : 0;
+                } catch (e) {
+                    return 0;
+                }
+            })();
             """;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private int generation = 0;
+    private int stableChecks = 0;
+    private long pollStartTime = 0;
 
     @Override
     public void onPageFinished(WebView view, String url) {
-//        view.evaluateJavascript("window.loadListener.onLoadComplete(document.documentElement.outerHTML);", null);
-        String js = """
-                    const observer = new MutationObserver((mutations, obs) => {
-                        const target = document.querySelector('#imp-message-body'); // or your target selector
-                        if (target && target.innerText.trim().length > 0) {
-                            obs.disconnect();
-                            window.loadListener.onLoadComplete(document.documentElement.outerHTML);
-                        }
-                    });
-                    observer.observe(document.body, { childList: true, subtree: true });
-                """;
-        view.evaluateJavascript(js, null);
-        view.evaluateJavascript(javascriptCode, null);
+        generation++;
+        final int currentGeneration = generation;
+        stableChecks = 0;
+        handler.removeCallbacksAndMessages(null);
+        handler.postDelayed(() -> startPolling(view, currentGeneration), INITIAL_DELAY_MS);
+    }
+
+    private void startPolling(WebView view, int gen) {
+        if (gen != generation) return;
+        pollStartTime = System.currentTimeMillis();
+        pollAjaxState(view, gen);
+    }
+
+    private void pollAjaxState(WebView view, int gen) {
+        if (gen != generation) return;
+        view.evaluateJavascript(CHECK_AJAX_ACTIVE_JS, value -> {
+            if (gen != generation) return;
+
+            boolean idle = "0".equals(value);
+            stableChecks = idle ? stableChecks + 1 : 0;
+
+            boolean timedOut = System.currentTimeMillis() - pollStartTime > MAX_WAIT_MS;
+            if ((idle && stableChecks >= STABLE_CHECKS_REQUIRED) || timedOut) {
+                captureHtml(view, gen);
+            } else {
+                handler.postDelayed(() -> pollAjaxState(view, gen), POLL_INTERVAL_MS);
+            }
+        });
+    }
+
+    private void captureHtml(WebView view, int gen) {
+        if (gen != generation) return;
+        view.evaluateJavascript(
+                "window.loadListener.onLoadComplete(document.documentElement.outerHTML);", null);
     }
 }
